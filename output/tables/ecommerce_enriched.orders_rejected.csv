@@ -1,0 +1,1 @@
+row_id,order_id,order_date,ship_date,ship_mode,customer_id,product_id,quantity,price,discount,profit,order_date_raw,reject_reason

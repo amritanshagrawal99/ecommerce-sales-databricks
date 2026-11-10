@@ -1,0 +1,53 @@
+# Databricks Asset Bundle: deploys the notebooks as one multi-task job
+#   databricks bundle deploy -t dev && databricks bundle run ecommerce_sales_pipeline -t dev
+# No cluster spec -> runs on serverless jobs compute (add job_clusters for classic compute).
+bundle:
+  name: ecommerce_sales
+
+variables:
+  source_path:
+    description: Folder (UC volume) holding Customer.xlsx, Products.csv, Orders.json
+    default: /Volumes/workspace/default/ecommerce_landing
+  catalog:
+    description: Target catalog (blank = workspace default)
+    default: ""
+
+targets:
+  dev:
+    mode: development
+    default: true
+
+resources:
+  jobs:
+    ecommerce_sales_pipeline:
+      name: ecommerce_sales_pipeline
+      max_concurrent_runs: 1
+      parameters:
+        - name: source_path
+          default: ${var.source_path}
+        - name: catalog
+          default: ${var.catalog}
+      tasks:
+        - task_key: unit_tests
+          notebook_task:
+            notebook_path: ./notebooks/07_run_unit_tests.py
+        - task_key: raw_ingestion
+          depends_on: [{ task_key: unit_tests }]
+          notebook_task:
+            notebook_path: ./notebooks/01_raw_ingestion.py
+        - task_key: enriched_customers_products
+          depends_on: [{ task_key: raw_ingestion }]
+          notebook_task:
+            notebook_path: ./notebooks/02_enriched_customers_products.py
+        - task_key: enriched_orders
+          depends_on: [{ task_key: enriched_customers_products }]
+          notebook_task:
+            notebook_path: ./notebooks/03_enriched_orders.py
+        - task_key: aggregate_profit
+          depends_on: [{ task_key: enriched_orders }]
+          notebook_task:
+            notebook_path: ./notebooks/04_aggregate_profit.py
+        - task_key: sql_aggregates
+          depends_on: [{ task_key: aggregate_profit }]
+          notebook_task:
+            notebook_path: ./notebooks/05_sql_aggregates.sql

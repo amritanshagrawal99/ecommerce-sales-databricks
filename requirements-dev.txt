@@ -1,0 +1,4 @@
+pyspark==3.5.3
+pytest>=8
+pandas>=2.0
+openpyxl>=3.1
